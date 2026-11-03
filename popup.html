@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8"/>
+  <title>Web to AI</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      width: 380px;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: #0c0c10;
+      color: #dde0f0;
+      padding: 0;
+      overflow-x: hidden;
+    }
+
+    /* ─── Header ─── */
+    .header {
+      background: linear-gradient(135deg, #1a0a3a 0%, #0f0f1e 100%);
+      padding: 14px 16px 12px;
+      border-bottom: 1px solid #2a1f4a;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .header-icon { font-size: 20px; }
+    .header-title { font-size: 14px; font-weight: 700; color: #c4b5fd; }
+    .header-sub { font-size: 10px; color: #6b6b8a; margin-top: 1px; }
+
+    /* ─── Tabs ─── */
+    .tabs {
+      display: flex;
+      background: #0f0f18;
+      border-bottom: 1px solid #1e1e30;
+    }
+    .tab {
+      flex: 1;
+      padding: 9px 4px;
+      text-align: center;
+      font-size: 11px;
+      font-weight: 500;
+      color: #555577;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all 0.15s;
+    }
+    .tab:hover { color: #a0a0cc; }
+    .tab.active { color: #c4b5fd; border-bottom-color: #7c3aed; }
+
+    /* ─── Panels ─── */
+    .panel { display: none; padding: 14px 16px; }
+    .panel.active { display: block; }
+
+    /* ─── Section ─── */
+    .section { margin-bottom: 12px; }
+    label {
+      display: block;
+      font-size: 10px;
+      font-weight: 700;
+      color: #666688;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      margin-bottom: 5px;
+    }
+
+    /* ─── Inputs ─── */
+    input[type="text"], input[type="password"], select, textarea {
+      width: 100%;
+      padding: 8px 10px;
+      background: #161622;
+      border: 1px solid #252538;
+      border-radius: 7px;
+      color: #dde0f0;
+      font-size: 12px;
+      outline: none;
+      transition: border-color 0.2s;
+      font-family: inherit;
+    }
+    input:focus, select:focus, textarea:focus { border-color: #7c3aed; }
+    textarea { resize: vertical; min-height: 60px; }
+
+    /* ─── Prompt Mode Selector ─── */
+    .prompt-modes {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+    .mode-card {
+      padding: 8px 10px;
+      border: 1px solid #252538;
+      border-radius: 8px;
+      background: #161622;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .mode-card:hover { border-color: #4a3a6a; }
+    .mode-card.active { border-color: #7c3aed; background: #1e1040; }
+    .mode-card .mode-icon { font-size: 16px; margin-bottom: 3px; }
+    .mode-card .mode-name { font-size: 11px; font-weight: 600; color: #c4b5fd; }
+    .mode-card .mode-desc { font-size: 10px; color: #666688; margin-top: 2px; line-height: 1.3; }
+    .mode-card.active .mode-desc { color: #9980cc; }
+
+    /* ─── AI Target Selector ─── */
+    .ai-pills {
+      display: flex;
+      gap: 5px;
+      flex-wrap: wrap;
+    }
+    .ai-pill {
+      padding: 5px 10px;
+      border-radius: 99px;
+      font-size: 11px;
+      font-weight: 500;
+      border: 1px solid #252538;
+      background: #161622;
+      color: #888;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .ai-pill.active { background: #1e1040; border-color: #7c3aed; color: #c4b5fd; }
+
+    /* ─── Buttons ─── */
+    .btn-group { display: flex; flex-direction: column; gap: 7px; }
+    .btn-row { display: flex; gap: 7px; }
+
+    button {
+      padding: 9px 14px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      transition: all 0.15s;
+      width: 100%;
+      letter-spacing: 0.1px;
+    }
+    button:active { transform: scale(0.97); }
+    button:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+
+    .btn-primary { background: linear-gradient(135deg, #7c3aed, #4f46e5); color: #fff; }
+    .btn-primary:hover:not(:disabled) { background: linear-gradient(135deg, #8b4cf5, #5b52f0); }
+    .btn-ghost { background: #161622; color: #a0a0cc; border: 1px solid #252538; }
+    .btn-ghost:hover:not(:disabled) { border-color: #4a3a6a; color: #c4b5fd; }
+    .btn-green { background: linear-gradient(135deg, #059669, #0d9488); color: #fff; }
+    .btn-green:hover:not(:disabled) { background: linear-gradient(135deg, #06a87a, #0ea49a); }
+    .btn-orange { background: linear-gradient(135deg, #d97706, #b45309); color: #fff; }
+    .btn-sm { padding: 7px 10px; font-size: 11px; }
+
+    /* ─── Preview / Output ─── */
+    .preview-wrap { margin-top: 10px; }
+    .preview-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 5px;
+    }
+    .preview-label { font-size: 10px; color: #555577; font-weight: 600; text-transform: uppercase; }
+    .preview-actions { display: flex; gap: 5px; }
+    .preview-box {
+      background: #0f0f18;
+      border: 1px solid #1e1e30;
+      border-radius: 7px;
+      padding: 10px;
+      font-size: 11px;
+      color: #888aaa;
+      max-height: 140px;
+      overflow-y: auto;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-family: 'Courier New', monospace;
+    }
+    .char-count { font-size: 10px; color: #444466; text-align: right; margin-top: 4px; }
+
+    /* ─── Status ─── */
+    .status {
+      margin-top: 10px;
+      padding: 8px 12px;
+      border-radius: 7px;
+      font-size: 11px;
+      line-height: 1.5;
+      display: none;
+    }
+    .status.show { display: block; }
+    .status.info { background: #0f0f2a; color: #818cf8; border: 1px solid #1e1e50; }
+    .status.success { background: #021f10; color: #4ade80; border: 1px solid #052e16; }
+    .status.error { background: #1c0505; color: #f87171; border: 1px solid #3c0a0a; }
+    .status.loading { background: #0f0f18; color: #888aaa; border: 1px solid #1e1e30; }
+
+    /* ─── API Section ─── */
+    .api-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+    /* ─── Stats Bar ─── */
+    .stats-bar {
+      display: flex;
+      gap: 0;
+      background: #0f0f18;
+      border: 1px solid #1e1e30;
+      border-radius: 7px;
+      overflow: hidden;
+      margin-bottom: 10px;
+    }
+    .stat-item {
+      flex: 1;
+      padding: 7px 6px;
+      text-align: center;
+      border-right: 1px solid #1e1e30;
+      font-size: 10px;
+      color: #555577;
+    }
+    .stat-item:last-child { border-right: none; }
+    .stat-num { font-size: 14px; font-weight: 700; color: #c4b5fd; display: block; }
+
+    /* ─── Scrollbar ─── */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #2a2a44; border-radius: 4px; }
+
+    .divider { border: none; border-top: 1px solid #1a1a28; margin: 10px 0; }
+    .text-muted { font-size: 10px; color: #444466; }
+    .mt-6 { margin-top: 6px; }
+
+    /* ─── Provider Pills ─── */
+    .provider-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+    }
+    .provider-pill {
+      padding: 5px 9px;
+      border-radius: 7px;
+      font-size: 11px;
+      font-weight: 500;
+      border: 1px solid #252538;
+      background: #161622;
+      color: #777799;
+      cursor: pointer;
+      transition: all 0.15s;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .provider-pill:hover { border-color: #4a3a6a; color: #b0b0dd; }
+    .provider-pill.active { background: #1e1040; border-color: #7c3aed; color: #c4b5fd; }
+    .pill-icon { font-size: 10px; }
+
+    /* ─── Provider Card ─── */
+    .provider-card {
+      background: #111120;
+      border: 1px solid #1e1e32;
+      border-radius: 10px;
+      overflow: hidden;
+      margin-bottom: 12px;
+    }
+    .provider-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 12px;
+      background: #161628;
+      border-bottom: 1px solid #1e1e32;
+      font-size: 12px;
+      font-weight: 600;
+      color: #c4b5fd;
+    }
+    .docs-link {
+      font-size: 10px;
+      color: #5555aa;
+      text-decoration: none;
+    }
+    .docs-link:hover { color: #9090dd; }
+    .provider-card-body { padding: 10px 12px; }
+
+    /* ─── Saved Providers List ─── */
+    .saved-list {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      max-height: 100px;
+      overflow-y: auto;
+    }
+    .saved-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 8px;
+      background: #161622;
+      border: 1px solid #252538;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: border-color 0.15s;
+    }
+    .saved-item:hover { border-color: #4a3a6a; }
+    .saved-item.active-provider { border-color: #7c3aed; background: #1a1035; }
+    .saved-item-name { font-size: 11px; font-weight: 600; color: #b0b0dd; flex: 1; }
+    .saved-item-url { font-size: 10px; color: #444466; flex: 2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .saved-item-del { font-size: 12px; color: #443344; cursor: pointer; padding: 0 2px; }
+    .saved-item-del:hover { color: #f87171; }
+    .empty-saved { font-size: 11px; color: #333355; text-align: center; padding: 8px; }
+
+    input[type="number"] {
+      width: 100%;
+      padding: 8px 10px;
+      background: #161622;
+      border: 1px solid #252538;
+      border-radius: 7px;
+      color: #dde0f0;
+      font-size: 12px;
+      outline: none;
+    }
+    input[type="number"]:focus { border-color: #7c3aed; }
+  </style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+  <span class="header-icon">🤖</span>
+  <div style="flex:1">
+    <div class="header-title">Web to AI</div>
+    <div class="header-sub">Ekstrak konten & style → generate prompt</div>
+  </div>
+  <div style="font-size:9px; color:#3d3d5c; text-align:right; line-height:1.6;">
+    created by<br>
+    <span style="color:#6b5fa0; font-weight:700; font-size:10px;">ilhamnrachman</span>
+  </div>
+</div>
+
+<!-- Main Tabs -->
+<div class="tabs">
+  <div class="tab active" data-tab="prompt">🎯 Prompt</div>
+  <div class="tab" data-tab="style">🎨 Style</div>
+  <div class="tab" data-tab="content">📄 Konten</div>
+  <div class="tab" data-tab="api">⚡ API</div>
+</div>
+
+<!-- ═══════════════ PANEL: PROMPT ═══════════════ -->
+<div class="panel active" id="panel-prompt">
+
+  <div class="section">
+    <label>Mode Prompt</label>
+    <div class="prompt-modes">
+      <div class="mode-card active" data-mode="clone">
+        <div class="mode-icon">🔁</div>
+        <div class="mode-name">Clone Page</div>
+        <div class="mode-desc">Prompt lengkap untuk rebuild halaman identik</div>
+      </div>
+      <div class="mode-card" data-mode="style">
+        <div class="mode-icon">🎨</div>
+        <div class="mode-name">Design System</div>
+        <div class="mode-desc">Ekstrak warna, font, spacing, CSS vars</div>
+      </div>
+      <div class="mode-card" data-mode="component">
+        <div class="mode-icon">🧩</div>
+        <div class="mode-name">Components</div>
+        <div class="mode-desc">Dokumentasi semua komponen UI + HTML</div>
+      </div>
+      <div class="mode-card" data-mode="analyze">
+        <div class="mode-icon">🔍</div>
+        <div class="mode-name">UX Analysis</div>
+        <div class="mode-desc">Analisis desain dan saran perbaikan</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <label>Target AI</label>
+    <div class="ai-pills">
+      <div class="ai-pill active" data-ai="chatgpt">ChatGPT</div>
+      <div class="ai-pill" data-ai="claude">Claude</div>
+      <div class="ai-pill" data-ai="gemini">Gemini</div>
+      <div class="ai-pill" data-ai="copy">Copy Only</div>
+    </div>
+  </div>
+
+  <div class="btn-group">
+    <button class="btn-primary" id="generateBtn">
+      ✨ Generate Prompt
+    </button>
+    <div class="btn-row">
+      <button class="btn-ghost btn-sm" id="copyPromptBtn" disabled>📋 Salin Prompt</button>
+      <button class="btn-green btn-sm" id="openWithPromptBtn" disabled>🚀 Buka AI</button>
+    </div>
+  </div>
+
+  <div class="preview-wrap" id="promptPreviewWrap" style="display:none">
+    <div class="preview-header">
+      <span class="preview-label">Preview Prompt</span>
+      <span class="text-muted" id="promptLen"></span>
+    </div>
+    <div class="preview-box" id="promptPreview"></div>
+  </div>
+
+  <div id="promptStatus" class="status"></div>
+</div>
+
+<!-- ═══════════════ PANEL: STYLE ═══════════════ -->
+<div class="panel" id="panel-style">
+
+  <div class="btn-group">
+    <button class="btn-primary" id="extractStyleBtn">🎨 Scan Design System</button>
+  </div>
+
+  <div id="styleStats" class="stats-bar" style="display:none; margin-top:10px">
+    <div class="stat-item"><span class="stat-num" id="statColors">-</span>Warna</div>
+    <div class="stat-item"><span class="stat-num" id="statFonts">-</span>Font</div>
+    <div class="stat-item"><span class="stat-num" id="statVars">-</span>CSS Vars</div>
+    <div class="stat-item"><span class="stat-num" id="statComps">-</span>Komponen</div>
+  </div>
+
+  <div id="styleResult" style="display:none">
+    <div class="section">
+      <label>Warna Ditemukan</label>
+      <div id="colorSwatches" style="display:flex; flex-wrap:wrap; gap:4px;"></div>
+    </div>
+
+    <div class="section">
+      <label>Font Families</label>
+      <div id="fontList" style="font-size:11px; color:#888aaa; line-height:1.8;"></div>
+    </div>
+
+    <div class="section">
+      <label>CSS Variables</label>
+      <div class="preview-box" id="cssVarsBox" style="max-height:80px;"></div>
+    </div>
+
+    <hr class="divider"/>
+    <div class="btn-row">
+      <button class="btn-ghost btn-sm" id="copyStyleBtn">📋 Salin Semua Style</button>
+      <button class="btn-ghost btn-sm" id="copyRawCSSBtn">📋 Salin Raw CSS</button>
+    </div>
+  </div>
+
+  <div id="styleStatus" class="status"></div>
+</div>
+
+<!-- ═══════════════ PANEL: KONTEN ═══════════════ -->
+<div class="panel" id="panel-content">
+
+  <div class="section">
+    <label>Mode Ekstrak</label>
+    <select id="extractMode">
+      <option value="full">Semua (teks, tabel, link, gambar)</option>
+      <option value="text">Teks utama saja</option>
+      <option value="tables">Tabel saja</option>
+      <option value="links">Link saja</option>
+      <option value="forms">Form & input saja</option>
+      <option value="images">Gambar saja</option>
+    </select>
+  </div>
+
+  <div class="btn-group">
+    <button class="btn-primary" id="previewBtn">👁️ Preview Konten</button>
+    <button class="btn-ghost" id="copyBtn">📋 Salin ke Clipboard</button>
+  </div>
+
+  <div class="preview-wrap">
+    <div class="preview-box" id="previewBox" style="display:none; margin-top:10px;"></div>
+    <div class="char-count" id="charCount"></div>
+  </div>
+
+  <div id="contentStatus" class="status"></div>
+</div>
+
+<!-- ═══════════════ PANEL: API ═══════════════ -->
+<div class="panel" id="panel-api">
+
+  <!-- Provider Preset Pills -->
+  <div class="section">
+    <label>Provider</label>
+    <div class="provider-pills" id="providerPills">
+      <div class="provider-pill active" data-provider="openai">
+        <span class="pill-icon">🟢</span> OpenAI
+      </div>
+      <div class="provider-pill" data-provider="anthropic">
+        <span class="pill-icon">🟠</span> Claude
+      </div>
+      <div class="provider-pill" data-provider="google">
+        <span class="pill-icon">🔵</span> Gemini
+      </div>
+      <div class="provider-pill" data-provider="groq">
+        <span class="pill-icon">⚡</span> Groq
+      </div>
+      <div class="provider-pill" data-provider="openrouter">
+        <span class="pill-icon">🔀</span> OpenRouter
+      </div>
+      <div class="provider-pill" data-provider="ollama">
+        <span class="pill-icon">🦙</span> Ollama
+      </div>
+      <div class="provider-pill" data-provider="custom">
+        <span class="pill-icon">⚙️</span> Custom
+      </div>
+    </div>
+  </div>
+
+  <!-- Provider Info Card -->
+  <div class="provider-card" id="providerCard">
+    <div class="provider-card-header">
+      <span id="providerName">OpenAI</span>
+      <a id="providerDocsLink" href="#" target="_blank" class="docs-link">Docs ↗</a>
+    </div>
+    <div class="provider-card-body">
+      <div class="section">
+        <label>Base URL</label>
+        <div style="display:flex; gap:6px;">
+          <input type="text" id="baseUrl" placeholder="https://api.openai.com/v1" style="flex:1"/>
+          <button class="btn-ghost btn-sm" id="testConnBtn" style="width:auto; white-space:nowrap;">🔌 Test</button>
+        </div>
+      </div>
+
+      <div class="section">
+        <label>API Key</label>
+        <div style="display:flex; gap:6px; align-items:center;">
+          <input type="password" id="apiKey" placeholder="sk-..." style="flex:1"/>
+          <button class="btn-ghost btn-sm" id="toggleKeyBtn" style="width:auto; font-size:14px;" title="Show/Hide">👁</button>
+        </div>
+      </div>
+
+      <div class="api-grid">
+        <div class="section">
+          <label>Model</label>
+          <select id="modelSelect">
+            <option value="gpt-4o">gpt-4o</option>
+            <option value="gpt-4o-mini">gpt-4o-mini</option>
+            <option value="gpt-4-turbo">gpt-4-turbo</option>
+            <option value="gpt-3.5-turbo">gpt-3.5-turbo</option>
+          </select>
+        </div>
+        <div class="section">
+          <label>atau ketik model</label>
+          <input type="text" id="modelCustom" placeholder="model-name"/>
+        </div>
+      </div>
+
+      <!-- Saved Providers -->
+      <div class="section">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+          <label style="margin:0">Provider Tersimpan</label>
+          <button class="btn-ghost btn-sm" id="saveProviderBtn" style="width:auto; padding:3px 8px;">💾 Simpan</button>
+        </div>
+        <div id="savedProvidersList" class="saved-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Send Config -->
+  <div class="section">
+    <div class="api-grid">
+      <div>
+        <label>Ekstrak Mode</label>
+        <select id="apiExtractMode">
+          <option value="full">Full Konten</option>
+          <option value="text">Teks saja</option>
+          <option value="style">Design Style</option>
+          <option value="clone">Clone Prompt</option>
+          <option value="component">Components</option>
+        </select>
+      </div>
+      <div>
+        <label>Max Tokens</label>
+        <input type="number" id="maxTokens" value="2000" min="100" max="8000"/>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <label>System Prompt</label>
+    <textarea id="systemPrompt" placeholder="Kamu adalah frontend developer yang menganalisis dan mereplikasi desain web..."></textarea>
+  </div>
+
+  <div class="btn-row">
+    <button class="btn-orange" id="sendApiBtn" style="flex:1">⚡ Kirim ke AI</button>
+    <button class="btn-ghost btn-sm" id="fetchModelsBtn" style="width:auto; white-space:nowrap;">📋 List Model</button>
+  </div>
+
+  <div class="preview-wrap" id="apiResultWrap" style="display:none; margin-top:10px;">
+    <div class="preview-header">
+      <span class="preview-label">Respons AI</span>
+      <div style="display:flex; gap:4px;">
+        <button class="btn-ghost btn-sm" id="copyApiResult" style="width:auto; padding:3px 8px;">Salin</button>
+        <button class="btn-ghost btn-sm" id="clearApiResult" style="width:auto; padding:3px 8px;">✕</button>
+      </div>
+    </div>
+    <div class="preview-box" id="apiResult" style="max-height:180px;"></div>
+    <div class="char-count" id="apiResultMeta"></div>
+  </div>
+
+  <div id="apiStatus" class="status"></div>
+</div>
+
+<script src="popup.js"></script>
+</body>
+</html>
